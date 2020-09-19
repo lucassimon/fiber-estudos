@@ -6,8 +6,9 @@ build:
 compress:
 	@upx $(PWD)/build/api
 
-.production: build compress
+compile: build compress
 
-.dev: build compress
+dev:
+	@air -c .air.linux.conf -d
 
-.PHONY: build compress
+.PHONY: compile
