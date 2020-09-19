@@ -1,6 +1,7 @@
 package main
 
 import (
+	todos "fiber-estudos/src/todos"
 	"fmt"
 	"log"
 	"os"
@@ -9,19 +10,23 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/compress"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/favicon"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/requestid"
 )
 
-type Todo struct {
-	Id        int    `json:"id"`
-	Name      string `json:"name"`
-	Completed bool   `json:"completed"`
-}
+func setupRouteV1(app *fiber.App) {
 
-var todos = []Todo{
-	{Id: 1, Name: "Food to dog", Completed: false},
-	{Id: 2, Name: "Food to cat", Completed: false},
+	api := app.Group("/api") // /api
+
+	v1 := api.Group("/v1", func(c *fiber.Ctx) error {
+		c.JSON(fiber.Map{
+			"message": "v1",
+		})
+		return c.Next()
+	}) // /api/v1
+	v1.Get("/todos", todos.GetTodos) // /api/v1/todos
+
 }
 
 // Timer will measure how long it takes before a response is returned
@@ -43,6 +48,9 @@ func Timer() fiber.Handler {
 func main() {
 	app := fiber.New()
 
+	// Default config
+	app.Use(favicon.New())
+
 	// Default middleware config
 	app.Use(requestid.New())
 
@@ -56,12 +64,11 @@ func main() {
 	}))
 
 	if os.Getenv("APP_ENV") == "dev" {
-
 		// Or extend your config for customization
 		app.Use(logger.New(logger.Config{
-			Format:     "${pid} ${status} - ${method} ${path}\n",
+			Format:     "[${time}] ${status} - ${latency} ${method} ${path}\n",
 			TimeFormat: "02-Jan-2006",
-			TimeZone:   "America/New_York",
+			TimeZone:   "America/Sao_Paulo",
 			Output:     os.Stdout,
 		}))
 	}
@@ -72,6 +79,8 @@ func main() {
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.SendString("Hello, World!")
 	})
+
+	setupRouteV1(app)
 
 	// 404 Handler
 	app.Use(func(c *fiber.Ctx) error {
