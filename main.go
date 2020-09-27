@@ -13,7 +13,20 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/favicon"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/requestid"
+	"github.com/joho/godotenv"
 )
+
+func init() {
+	// load .env file
+	err := godotenv.Load(".env")
+
+	if err != nil {
+		log.Fatalf("Error loading .env file")
+	}
+
+	fmt.Println(os.Getenv("POSTGRES_URL"))
+
+}
 
 func setupRouteV1(app *fiber.App) {
 
@@ -25,7 +38,8 @@ func setupRouteV1(app *fiber.App) {
 		})
 		return c.Next()
 	}) // /api/v1
-	v1.Get("/todos", todos.GetTodos) // /api/v1/todos
+	v1.Get("/todos", todos.GetTodos)    // /api/v1/todos
+	v1.Post("/todos", todos.CreateTodo) // /api/v1/todos
 
 }
 
