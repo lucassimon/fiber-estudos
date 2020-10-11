@@ -3,6 +3,8 @@ module fiber-estudos
 go 1.13
 
 require (
+	github.com/go-playground/validator v9.31.0+incompatible
+	github.com/go-playground/validator/v10 v10.4.0
 	github.com/gofiber/fiber v1.14.6
 	github.com/gofiber/fiber/v2 v2.0.2
 	github.com/gorilla/schema v1.2.0 // indirect

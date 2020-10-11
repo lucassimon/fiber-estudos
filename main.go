@@ -12,6 +12,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/favicon"
 	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/fiber/v2/middleware/requestid"
 	"github.com/joho/godotenv"
 )
@@ -25,21 +26,6 @@ func init() {
 	}
 
 	fmt.Println(os.Getenv("POSTGRES_URL"))
-
-}
-
-func setupRouteV1(app *fiber.App) {
-
-	api := app.Group("/api") // /api
-
-	v1 := api.Group("/v1", func(c *fiber.Ctx) error {
-		c.JSON(fiber.Map{
-			"message": "v1",
-		})
-		return c.Next()
-	}) // /api/v1
-	v1.Get("/todos", todos.GetTodos)    // /api/v1/todos
-	v1.Post("/todos", todos.CreateTodo) // /api/v1/todos
 
 }
 
@@ -71,6 +57,9 @@ func main() {
 	// Custom Timer middleware
 	app.Use(Timer())
 
+	// Middleware
+	app.Use(recover.New())
+
 	// Or extend your config for customization
 	app.Use(cors.New(cors.Config{
 		AllowOrigins: "https://gofiber.io, https://gofiber.net",
@@ -91,14 +80,40 @@ func main() {
 	app.Use(compress.New())
 
 	app.Get("/", func(c *fiber.Ctx) error {
-		return c.SendString("Hello, World!")
+		return c.Status(fiber.StatusOK).JSON(fiber.Map{
+			"message": "Hello, World!",
+		})
 	})
 
-	setupRouteV1(app)
+	api := app.Group("/api", func(c *fiber.Ctx) error {
+		c.Status(fiber.StatusOK).JSON(fiber.Map{
+			"message": "api",
+		})
+		return c.Next()
+	}) // /api
+
+	v1 := api.Group("/v1", func(c *fiber.Ctx) error {
+		c.Status(fiber.StatusOK).JSON(fiber.Map{
+			"message": "v1",
+		})
+		return c.Next()
+	}) // /api/v1
+
+	// v2 := api.Group("/v2", func(c *fiber.Ctx) error {
+	// 	c.Status(fiber.StatusOK).JSON(fiber.Map{
+	// 		"message": "v2",
+	// 	})
+	// 	return c.Next()
+	// }) // /api/v2
+
+	todos.TodosRouterV1(v1)
+	// todos.TodosRouterV2(v2)
 
 	// 404 Handler
 	app.Use(func(c *fiber.Ctx) error {
-		return c.SendStatus(404) // => 404 "Not Found"
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"message": "Resource not found.",
+		})
 	})
 
 	// Start server

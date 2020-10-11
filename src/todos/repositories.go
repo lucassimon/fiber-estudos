@@ -8,24 +8,53 @@ import (
 	"log"
 )
 
-// All users
-func All(limit, offset int64) (todos []Todo, err error) {
+//Repository interface allows us to access the CRUD Operations in mongo here.
+type Repository interface {
+	CreateTodo(todo *Todo) (Todo, error)
+	FetchAllTodo(limit, offset int64, orderby string, asc string) ([]Todo, error)
+	Get(id string) (Todo, error)
+	// UpdateTodo(todo *Todo) (*Todo, error)
+	// DeleteTodo(ID string) error
+}
+
+type repository struct{}
+
+//NewRepo is the single instance repo that is being created.
+func NewRepo() Repository {
+	return &repository{}
+}
+
+// FetchAllTodo All todos
+func (r *repository) FetchAllTodo(limit, offset int64, orderBy string, asc string) (todos []Todo, err error) {
+	if limit == 0 {
+		limit = 10
+	}
+
+	if orderBy == "" {
+		orderBy = "created"
+	}
 
 	// create the postgres db connection
 	db := databases.CreateConnection()
 	// close the db connection
 	defer db.Close()
 
-	// create the select sql query
-	query := `SELECT id, name, completed FROM todos LIMIT $1 OFFSET $2`
+	query := `SELECT id, name, completed, created_at FROM todos ORDER BY $1 ASC LIMIT $2 OFFSET $3`
 
-	rows, err := db.Query(query, limit, offset)
+	// create the select sql query
+	if asc == "0" {
+		query = `SELECT id, name, completed, created_at FROM todos ORDER BY $1 DESC LIMIT $2 OFFSET $3`
+	}
+
+	fmt.Println(query)
+
+	rows, err := db.Query(query, orderBy, limit, offset)
 	defer rows.Close()
 	utils.CheckError(err)
 
 	for rows.Next() {
 		todo := Todo{}
-		err = rows.Scan(&todo.ID, &todo.Name, &todo.Completed)
+		err = rows.Scan(&todo.ID, &todo.Name, &todo.Completed, &todo.CreatedAt)
 		utils.CheckError(err)
 
 		todos = append(todos, todo)
@@ -34,8 +63,8 @@ func All(limit, offset int64) (todos []Todo, err error) {
 	return todos, nil
 }
 
-// Create todo
-func Create(todo Todo) (Todo, error) {
+// CreateTodo
+func (r *repository) CreateTodo(todo *Todo) (Todo, error) {
 	// create the postgres db connection
 	db := databases.CreateConnection()
 	// close the db connection
@@ -66,7 +95,7 @@ func Create(todo Todo) (Todo, error) {
 }
 
 // Get Fetch todo by id
-func Get(id string) (Todo, error) {
+func (r *repository) Get(id string) (Todo, error) {
 	// hardcoded
 	// create the postgres db connection
 	db := databases.CreateConnection()
